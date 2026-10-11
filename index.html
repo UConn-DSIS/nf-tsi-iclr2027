@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>NF-TSI @ ICLR 2027</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap">
+<style>
+/* ─── Design tokens — light theme ───────────────────────────────────────── */
+:root {
+  --bg:        #ffffff;
+  --bg2:       #f7f8fc;
+  --bg3:       #eef0f8;
+  --surface:   #ffffff;
+  --border:    rgba(60,80,160,.12);
+  --shadow:    0 2px 16px rgba(60,80,160,.08);
+  --fg:        #1a1f36;
+  --fg2:       #4a5278;
+  --fg3:       #8a90b0;
+  --accent:    #007a6a;
+  --accent2:   #4a55d0;
+  --amber:     #b45309;
+  --confirmed: #047857;
+  --tbc:       #b45309;
+
+  --font-display: 'Syne', sans-serif;
+  --font-body:    'Outfit', sans-serif;
+  --font-mono:    'Space Mono', monospace;
+
+  color-scheme: light;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.65;
+  overflow-x: hidden;
+}
+
+img { max-width: 100%; display: block; }
+a { color: var(--accent2); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ─── Utility ────────────────────────────────────────────────────────────── */
+.container { width: 100%; max-width: 1100px; margin: 0 auto; padding-inline: 24px; }
+.section { padding-block: 80px; }
+.section-alt  { background: var(--bg2); }
+.section-alt2 { background: var(--bg3); }
+
+.eyebrow {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.eyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 28px; height: 3px;
+  background: var(--accent);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.section-sub {
+  color: var(--fg2);
+  font-size: 1.05rem;
+  max-width: 620px;
+  margin-bottom: 48px;
+}
+
+/* ─── Nav ─────────────────────────────────────────────────────────────────── */
+#nav {
+  position: fixed;
+  top: env(safe-area-inset-top, 0px);
+  left: 0; right: 0;
+  z-index: 100;
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 24px; max-width: 1100px; margin: 0 auto;
+}
+
+/* NF-TSI logo — Space Mono gives a data/code feel */
+.nav-logo {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: .04em;
+  color: var(--fg);
+  display: flex; align-items: center; gap: 0;
+}
+.nav-logo .logo-accent { color: var(--accent); }
+.nav-logo .logo-sep    { color: var(--fg3); margin: 0 6px; font-weight: 400; }
+.nav-logo .logo-conf   { color: var(--accent2); font-size: .88rem; }
+
+.nav-links { display: flex; gap: 28px; list-style: none; }
+.nav-links a { color: var(--fg2); font-size: .9rem; font-weight: 500; transition: color .2s; }
+.nav-links a:hover { color: var(--accent); text-decoration: none; }
+
+.nav-burger {
+  display: none; flex-direction: column; gap: 5px;
+  background: none; border: none; cursor: pointer; padding: 4px;
+}
+.nav-burger span { width: 24px; height: 2px; background: var(--fg2); border-radius: 2px; transition: all .3s; }
+
+/* ─── Hero ────────────────────────────────────────────────────────────────── */
+#hero {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  padding-top: 80px;
+  overflow: hidden;
+  background: #f0f5ff;
+}
+
+#hero-canvas {
+  position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0;
+}
+
+.hero-content { position: relative; z-index: 1; padding-block: 60px; }
+
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 1.5px solid rgba(0,122,106,.35); border-radius: 100px;
+  padding: 6px 18px; font-size: .82rem; color: var(--accent);
+  font-family: var(--font-display); font-weight: 700; letter-spacing: .08em;
+  margin-bottom: 28px; background: rgba(0,122,106,.07);
+}
+.hero-badge::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent); animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%      { opacity:.4; transform:scale(.7); }
+}
+
+.hero-kicker {
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 6.5vw, 4.8rem);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -.01em;
+  text-wrap: balance;
+  color: var(--fg);
+  margin-bottom: 14px;
+}
+.hero-kicker .accent  { color: var(--accent); }
+.hero-kicker .accent2 { color: var(--accent2); }
+
+.hero-subtitle {
+  font-size: clamp(.97rem, 2.2vw, 1.2rem);
+  color: var(--fg2); max-width: 640px; margin-bottom: 36px;
+  font-weight: 400; line-height: 1.65;
+}
+
+.hero-meta { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 44px; }
+.hero-chip {
+  display: flex; align-items: center; gap: 7px;
+  background: rgba(255,255,255,.82); border: 1px solid var(--border);
+  border-radius: 8px; padding: 9px 16px; font-size: .88rem; color: var(--fg2);
+  backdrop-filter: blur(6px);
+}
+.hero-chip svg { color: var(--accent); flex-shrink: 0; }
+
+.hero-ctas { display: flex; flex-wrap: wrap; gap: 14px; }
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--accent); color: #fff;
+  font-family: var(--font-display); font-weight: 700; font-size: .95rem;
+  padding: 13px 26px; border-radius: 10px; transition: filter .2s, transform .15s;
+}
+.btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); text-decoration: none; color: #fff; }
+.btn-secondary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,.85); color: var(--fg);
+  font-family: var(--font-display); font-weight: 600; font-size: .95rem;
+  padding: 12px 26px; border-radius: 10px; border: 1.5px solid var(--border);
+  transition: border-color .2s, background .2s;
+}
+.btn-secondary:hover { border-color: var(--accent2); background: rgba(74,85,208,.07); text-decoration: none; }
+
+/* ─── Stats bar ───────────────────────────────────────────────────────────── */
+#stats { background: var(--fg); padding-block: 28px; }
+.stats-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0; text-align: center;
+}
+.stat-item { padding: 12px 20px; border-right: 1px solid rgba(255,255,255,.12); }
+.stat-item:last-child { border-right: none; }
+
+/* Space Mono for stats numbers — technical/data feel */
+.stat-num {
+  font-family: var(--font-mono);
+  font-size: 2rem; font-weight: 700;
+  color: #7af5e4; line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.02em;
+}
+.stat-label { font-size: .78rem; color: rgba(255,255,255,.55); margin-top: 5px; letter-spacing: .04em; font-family: var(--font-body); }
+
+/* ─── Topic cards ─────────────────────────────────────────────────────────── */
+.topics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.topic-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 22px 24px;
+  transition: border-color .25s, transform .2s, box-shadow .2s;
+  position: relative; overflow: hidden; box-shadow: var(--shadow);
+}
+.topic-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  transform: scaleX(0); transform-origin: left; transition: transform .3s;
+}
+.topic-card:hover { border-color: rgba(74,85,208,.3); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(60,80,160,.12); }
+.topic-card:hover::before { transform: scaleX(1); }
+.topic-icon { font-size: 1.4rem; margin-bottom: 10px; }
+.topic-title { font-family: var(--font-display); font-weight: 700; font-size: .95rem; color: var(--fg); margin-bottom: 6px; }
+.topic-desc { font-size: .82rem; color: var(--fg2); line-height: 1.5; }
+
+/* ─── Schedule ────────────────────────────────────────────────────────────── */
+.schedule-table-wrap { overflow-x: auto; border-radius: 14px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+table.schedule { width: 100%; border-collapse: collapse; font-size: .9rem; min-width: 500px; }
+.schedule thead th {
+  background: var(--bg3); font-family: var(--font-display); font-size: .75rem;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--fg2);
+  padding: 14px 20px; text-align: left; border-bottom: 1px solid var(--border);
+}
+.schedule tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+.schedule tbody tr:last-child { border-bottom: none; }
+.schedule tbody tr:hover { background: var(--bg2); }
+.schedule td { padding: 13px 20px; vertical-align: top; }
+.sched-time {
+  font-family: var(--font-mono); font-weight: 400;
+  color: var(--accent2); font-size: .82rem;
+  white-space: nowrap; font-variant-numeric: tabular-nums; min-width: 120px;
+}
+.sched-activity { color: var(--fg); }
+.sched-break { color: var(--fg3); font-style: italic; }
+.sched-special { color: var(--accent2); font-weight: 700; }
+
+/* ─── CFP ─────────────────────────────────────────────────────────────────── */
+.cfp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
+.cfp-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 30px; box-shadow: var(--shadow); }
+.cfp-box h3 { font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; margin-bottom: 18px; color: var(--fg); }
+.cfp-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.cfp-list li { display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; color: var(--fg2); }
+.cfp-list li::before { content: '→'; color: var(--accent); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+.dates-list { list-style: none; display: flex; flex-direction: column; gap: 0; }
+.date-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 0; border-bottom: 1px solid var(--border); font-size: .9rem; }
+.date-row:last-child { border-bottom: none; }
+.date-label { color: var(--fg2); }
+.date-val { font-family: var(--font-mono); font-weight: 700; color: var(--accent); text-align: right; font-variant-numeric: tabular-nums; font-size: .85rem; }
+
+/* ─── Organizers ──────────────────────────────────────────────────────────── */
+.organizers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 18px; }
+.organizer-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 24px 18px; text-align: center;
+  transition: border-color .25s, box-shadow .2s; box-shadow: var(--shadow);
+}
+.organizer-card:hover { border-color: rgba(74,85,208,.35); box-shadow: 0 8px 28px rgba(74,85,208,.1); }
+.org-avatar {
+  width: 80px; height: 80px; border-radius: 50%;
+  margin: 0 auto 14px; display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 1.2rem; font-weight: 800;
+  color: #fff; flex-shrink: 0; overflow: hidden;
+}
+.org-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.org-name { font-family: var(--font-display); font-weight: 700; font-size: .95rem; color: var(--fg); margin-bottom: 4px; }
+.org-affil { font-size: .78rem; color: var(--fg2); line-height: 1.35; margin-bottom: 8px; }
+.org-email { font-size: .72rem; color: var(--accent); margin-top: 4px; }
+.org-links { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+.org-link { font-size: .73rem; color: var(--accent2); border: 1px solid rgba(74,85,208,.25); border-radius: 6px; padding: 2px 8px; transition: background .2s; }
+.org-link:hover { background: rgba(74,85,208,.08); text-decoration: none; }
+
+/* avatar colour palette */
+.av-0 { background: linear-gradient(135deg,#007a6a,#004d44); }
+.av-1 { background: linear-gradient(135deg,#4a55d0,#2e3aab); }
+.av-2 { background: linear-gradient(135deg,#b45309,#92400e); }
+.av-3 { background: linear-gradient(135deg,#9d174d,#701a3a); }
+.av-4 { background: linear-gradient(135deg,#6d28d9,#4c1d95); }
+.av-5 { background: linear-gradient(135deg,#047857,#065f46); }
+.av-6 { background: linear-gradient(135deg,#1d4ed8,#1e3a8a); }
+.av-7 { background: linear-gradient(135deg,#b91c1c,#7f1d1d); }
+
+/* ─── Footer ──────────────────────────────────────────────────────────────── */
+footer { background: var(--fg); padding-block: 36px 28px; }
+.footer-inner { display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: center; }
+/* Space Mono for footer logo too */
+.footer-logo { font-family: var(--font-mono); font-weight: 700; font-size: .95rem; color: rgba(255,255,255,.55); letter-spacing: .03em; }
+.footer-logo .logo-accent { color: #7af5e4; }
+.footer-logo .logo-sep    { color: rgba(255,255,255,.3); margin: 0 5px; }
+.footer-logo .logo-conf   { color: rgba(108,127,255,.85); font-size: .85rem; }
+.footer-links { display: flex; gap: 20px; list-style: none; flex-wrap: wrap; }
+.footer-links a { font-size: .82rem; color: rgba(255,255,255,.4); transition: color .2s; }
+.footer-links a:hover { color: #7af5e4; text-decoration: none; }
+.footer-copy { font-size: .78rem; color: rgba(255,255,255,.3); margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.08); text-align: center; width: 100%; }
+
+/* ─── Mobile nav ──────────────────────────────────────────────────────────── */
+@media (max-width: 720px) {
+  .nav-links { display: none; flex-direction: column; position: absolute; top: 100%; left: 0; right: 0; background: rgba(255,255,255,.97); padding: 20px 24px 24px; border-bottom: 1px solid var(--border); gap: 16px; }
+  .nav-links.open { display: flex; }
+  .nav-burger { display: flex; }
+  .cfp-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .stat-item:nth-child(2n) { border-right: none; }
+  .section { padding-block: 56px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Nav ──────────────────────────────────────────────────────────────── -->
+<nav id="nav">
+  <div class="nav-inner">
+    <div class="nav-logo">
+      <span class="logo-accent">NF-TSI</span>
+      <span class="logo-sep">·</span>
+      <span class="logo-conf">ICLR 2027</span>
+    </div>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="#about">About</a></li>
+      <li><a href="#topics">Topics</a></li>
+      <li><a href="#schedule">Schedule</a></li>
+      <li><a href="#cfp">Call for Papers</a></li>
+      <li><a href="#organizers">Organizers</a></li>
+    </ul>
+    <button class="nav-burger" id="nav-burger" aria-label="Toggle navigation">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- ── Hero ─────────────────────────────────────────────────────────────── -->
+<section id="hero">
+  <canvas id="hero-canvas" aria-hidden="true"></canvas>
+  <div class="container hero-content">
+    <div class="hero-badge">ICLR 2027 Workshop Proposal</div>
+    <h1 class="hero-kicker">
+      The Next Frontier of<br>
+      <span class="accent">Time Series</span> <span class="accent2">Intelligence</span>
+    </h1>
+    <p class="hero-subtitle">
+      From Multimodal Foundation Models to Agentic and Self-Evolving Systems —
+      a full-day workshop bringing together researchers in time series analysis,
+      foundation models, multimodal learning, agentic AI, and scientific applications.
+    </p>
+    <div class="hero-meta">
+      <div class="hero-chip">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        April 2027 · Date TBD by ICLR
+      </div>
+      <div class="hero-chip">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        ICLR 2027 Venue
+      </div>
+      <div class="hero-chip">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        200–300 Expected Attendees
+      </div>
+      <div class="hero-chip">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Submission Deadline: Jan 15, 2027
+      </div>
+    </div>
+    <div class="hero-ctas">
+      <a href="#cfp" class="btn-primary">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Submit a Paper
+      </a>
+      <a href="#organizers" class="btn-secondary">Meet the Organizers →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── Stats bar ─────────────────────────────────────────────────────────── -->
+<div id="stats">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-item"><div class="stat-num">8</div><div class="stat-label">Invited Speakers</div></div>
+      <div class="stat-item"><div class="stat-num">2</div><div class="stat-label">Plenary Talks</div></div>
+      <div class="stat-item"><div class="stat-num">10</div><div class="stat-label">Research Topics</div></div>
+      <div class="stat-item"><div class="stat-num">30</div><div class="stat-label">Program Committee</div></div>
+      <div class="stat-item"><div class="stat-num">Full</div><div class="stat-label">Day Workshop</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── About ─────────────────────────────────────────────────────────────── -->
+<section id="about" class="section section-alt">
+  <div class="container">
+    <div class="eyebrow">Workshop Overview</div>
+    <p class="section-sub">
+      Three critical frontiers remain open in time series AI — and this workshop addresses all three simultaneously.
+    </p>
+    <div class="topics-grid" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
+      <div class="topic-card">
+        <div class="topic-icon">🧩</div>
+        <div class="topic-title">Multimodal Time Series Learning</div>
+        <div class="topic-desc">Real-world temporal data rarely appear as clean numerical sequences. Clinical time series accompany free-text notes and medical images; financial signals correlate with news and reports. Multimodal integration can dramatically expand what is learnable from time series.</div>
+      </div>
+      <div class="topic-card">
+        <div class="topic-icon">🤖</div>
+        <div class="topic-title">Agentic &amp; Self-Evolving AI for Time Series</div>
+        <div class="topic-desc">Beyond prediction, real-world temporal intelligence requires agency: retrieving historical analogues, invoking tools, running iterative experiments, and collaborating with human experts. Evolutionary agents and recursive self-improvement (RSI) mechanisms hold transformative potential.</div>
+      </div>
+      <div class="topic-card">
+        <div class="topic-icon">🌍</div>
+        <div class="topic-title">Translating SOTA to Real-World Applications</div>
+        <div class="topic-desc">A substantial gap persists between cutting-edge research and practical deployment in healthcare, Earth science, energy, and industrial IoT. This workshop provides a dedicated platform for time series researchers, domain scientists, and industry stakeholders to forge collaborations.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Topics ─────────────────────────────────────────────────────────────── -->
+<section id="topics" class="section">
+  <div class="container">
+    <div class="eyebrow">Topics of Interest</div>
+    <p class="section-sub">NF-TSI welcomes submissions presenting novel methods, benchmarks, and application results relevant to multimodal and agentic AI for time series.</p>
+    <div class="topics-grid">
+      <div class="topic-card">
+        <div class="topic-icon">🔀</div>
+        <div class="topic-title">Multimodal Time Series Learning</div>
+        <div class="topic-desc">Cross-modal fusion, alignment, and transference; contrastive and self-supervised multimodal pretraining; modality-missing robustness.</div>
+      </div>
+      <div class="topic-card">
+        <div class="topic-icon">🏗️</div>
+        <div class="topic-title">Foundation Models for Time Series</div>
+        <div class="topic-desc">Large-scale pretraining, zero-shot and few-shot transfer, tokenization and patching strategies, universal representations, benchmark evaluation.</div>
+      </div>
+      <div class="topic-card">
+        <div class="topic-icon">💬</div>
+        <div class="topic-title">LLM/VLM-Based Temporal Modeling</div>
+        <div class="topic-desc">Prompt learning and instruction tuning, semantic space alignment, language-guided forecasting and anomaly detection, vision-model-based temporal data analysis.</div>
+      </div>
+      <div class="topic-card">
+        <div class="topic-icon">⚙️</div>
+        <div class="topic-title">Agentic &amp; Self-Evolving AI</div>
+        <div class="topic-desc">Temporal workflow agents, RAG for time series, autonomous data analysis, evolutionary agents and RSI for time series, human-in-the-loop systems, multi-agent collaboration.</div>
+      </div>
+      <div class="topic-card">
+        <div class="topic-icon">🧠</div>
+        <div class="topic-title">Time Series Reasoning &amp; Grounding</div>
+        <div class="topic-desc">QA over temporal data, temporal reasoning with language models, event-aware forecasting, counterfactual temporal reasoning, interpretability.</div>
+      </div>
+      <div class="topic-card">
+        <div class="topic-icon">🔗</div>
+        <div class="topic-title">Causal Discovery &amp; Inference</div>
+        <div class="topic-desc">Granger causality, structural causal models for temporal data, interventional time series modeling.</div>
+      </div>
+      <div class="topic-card">
+        <div class="topic-icon">🛡️</div>
+        <div class="topic-title">Robust &amp; Trustworthy Temporal AI</div>
+        <div class="topic-desc">Distribution shift, domain adaptation, uncertainty quantification, fairness and bias in temporal models, reliability of agentic temporal systems.</div>
+      </div>
+      <div class="topic-card">
+        <div class="topic-icon">🗺️</div>
+        <div class="topic-title">Spatiotemporal &amp; Graph-Structured</div>
+        <div class="topic-desc">Spatiotemporal forecasting, image-based forecasting, traffic and mobility prediction, graph neural networks for temporal data.</div>
+      </div>
+      <div class="topic-card">
+        <div class="topic-icon">📊</div>
+        <div class="topic-title">Benchmarks, Datasets &amp; Evaluation</div>
+        <div class="topic-desc">New datasets, evaluation protocols, leakage-aware assessment, reproducibility and standardization for multimodal/agentic time series.</div>
+      </div>
+      <div class="topic-card">
+        <div class="topic-icon">🌡️</div>
+        <div class="topic-title">Applications</div>
+        <div class="topic-desc">Healthcare and biomedicine (EEG, fMRI, clinical monitoring), climate and earth systems, energy and power grids, finance and AIOps, IoT and cyber-physical systems, scientific discovery.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Speakers (commented out — tentatively removed, may be restored) ─────
+<section id="speakers" class="section section-alt">
+  <div class="container">
+    <div class="eyebrow">Invited Speakers &amp; Panelists</div>
+    <p class="section-sub">Eight leading researchers from academia and industry delivering two plenary and six keynote presentations.</p>
+    <div class="speakers-grid">
+      <div class="speaker-card">
+        <div class="speaker-avatar av-2" aria-hidden="true">TP</div>
+        <div class="speaker-name">Dr. Tomas Pfister</div>
+        <div class="speaker-role">Head of AI Research<br>Google Cloud</div>
+        <span class="speaker-tag tag-plenary">Plenary · Confirmed</span>
+      </div>
+      <div class="speaker-card">
+        <div class="speaker-avatar av-3" aria-hidden="true">FS</div>
+        <div class="speaker-name">Dr. Flora Salim</div>
+        <div class="speaker-role">Professor<br>UNSW Sydney</div>
+        <span class="speaker-tag tag-plenary">Plenary · Confirmed</span>
+      </div>
+      <div class="speaker-card">
+        <div class="speaker-avatar av-0" aria-hidden="true">LP</div>
+        <div class="speaker-name">Dr. Linsey Pang</div>
+        <div class="speaker-role">Distinguished Scientist<br>PayPal</div>
+        <span class="speaker-tag tag-keynote">Keynote · Confirmed</span>
+      </div>
+      <div class="speaker-card">
+        <div class="speaker-avatar av-1" aria-hidden="true">JP</div>
+        <div class="speaker-name">Dr. John Paparrizos</div>
+        <div class="speaker-role">Assistant Professor<br>Ohio State University</div>
+        <span class="speaker-tag tag-keynote">Keynote · Confirmed</span>
+      </div>
+      <div class="speaker-card">
+        <div class="speaker-avatar av-5" aria-hidden="true">BW</div>
+        <div class="speaker-name">Dr. Yuyang (Bernie) Wang</div>
+        <div class="speaker-role">Member of Technical Staff<br>NTT DATA AIVista</div>
+        <span class="speaker-tag tag-keynote">Keynote · Confirmed</span>
+      </div>
+      <div class="speaker-card">
+        <div class="speaker-avatar av-6" aria-hidden="true">MG</div>
+        <div class="speaker-name">Dr. Mononito Goswami</div>
+        <div class="speaker-role">Senior Applied Scientist<br>Amazon</div>
+        <span class="speaker-tag tag-keynote">Keynote · Confirmed</span>
+      </div>
+      <div class="speaker-card">
+        <div class="speaker-avatar av-4" aria-hidden="true">PG</div>
+        <div class="speaker-name">Dr. Palash Goyal</div>
+        <div class="speaker-role">Senior Research Scientist<br>Google Research</div>
+        <span class="speaker-tag tag-keynote">Keynote · Confirmed</span>
+      </div>
+      <div class="speaker-card">
+        <div class="speaker-avatar av-7" aria-hidden="true">TY</div>
+        <div class="speaker-name">Dr. Tao Ye</div>
+        <div class="speaker-role">Director of Gen AI<br>Lyft</div>
+        <span class="speaker-tag tag-tbc">Keynote · To Be Confirmed</span>
+      </div>
+    </div>
+  </div>
+</section>
+──────────────────────────────────────────────────────────────────────────── -->
+
+<!-- ── Schedule ────────────────────────────────────────────────────────────── -->
+<section id="schedule" class="section section-alt2">
+  <div class="container">
+    <div class="eyebrow">Tentative Program</div>
+    <p class="section-sub">Full-day program · April 2027 · Exact date TBD by ICLR.</p>
+    <div class="schedule-table-wrap">
+      <table class="schedule">
+        <thead>
+          <tr>
+            <th style="width:130px">Time</th>
+            <th>Session</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="sched-time">08:00 – 08:10</td><td class="sched-activity sched-special">Opening Remarks</td></tr>
+          <tr><td class="sched-time">08:10 – 08:50</td><td class="sched-activity">Plenary Talk 1</td></tr>
+          <tr><td class="sched-time">08:50 – 09:20</td><td class="sched-activity">Keynote Talk 1</td></tr>
+          <tr style="background:var(--bg2)"><td class="sched-time" style="color:var(--fg3)">09:20 – 09:40</td><td class="sched-break">☕ Coffee Break</td></tr>
+          <tr><td class="sched-time">09:40 – 10:10</td><td class="sched-activity">Keynote Talk 2</td></tr>
+          <tr><td class="sched-time">10:10 – 10:40</td><td class="sched-activity">Keynote Talk 3</td></tr>
+          <tr><td class="sched-time">10:40 – 11:40</td><td><div class="sched-activity sched-special">Oral Spotlight Session I</div><div style="color:var(--fg3);font-size:.82rem;margin-top:2px">5–6 contributed papers (7 min talk + 3 min Q&amp;A each)</div></td></tr>
+          <tr style="background:var(--bg2)"><td class="sched-time" style="color:var(--fg3)">11:40 – 13:00</td><td class="sched-break">🍽 Lunch Break + Poster Session I (full and tiny papers)</td></tr>
+          <tr><td class="sched-time">13:00 – 13:40</td><td class="sched-activity">Plenary Talk 2</td></tr>
+          <tr><td class="sched-time">13:40 – 14:10</td><td class="sched-activity">Keynote Talk 4</td></tr>
+          <tr style="background:var(--bg2)"><td class="sched-time" style="color:var(--fg3)">14:10 – 14:30</td><td class="sched-break">☕ Coffee Break</td></tr>
+          <tr><td class="sched-time">14:30 – 15:00</td><td class="sched-activity">Keynote Talk 5</td></tr>
+          <tr><td class="sched-time">15:00 – 15:30</td><td class="sched-activity">Keynote Talk 6</td></tr>
+          <tr><td class="sched-time">15:30 – 16:30</td><td><div class="sched-activity sched-special">Oral Spotlight Session II</div><div style="color:var(--fg3);font-size:.82rem;margin-top:2px">5–6 contributed papers (7 min talk + 3 min Q&amp;A each)</div></td></tr>
+          <tr><td class="sched-time">16:30 – 17:15</td><td><div class="sched-activity" style="color:var(--accent2);font-weight:700">Panel Discussion</div><div style="color:var(--fg3);font-size:.82rem;margin-top:2px">Open Challenges in Temporal Intelligence</div></td></tr>
+          <tr><td class="sched-time">17:15 – 18:30</td><td><div class="sched-activity sched-special">Poster Session II</div><div style="color:var(--fg3);font-size:.82rem;margin-top:2px">Full and tiny papers + Best Paper Award announcement</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ── CFP ────────────────────────────────────────────────────────────────── -->
+<section id="cfp" class="section section-alt">
+  <div class="container">
+    <div class="eyebrow">Call for Papers</div>
+    <p class="section-sub">All submissions undergo double-blind peer review via OpenReview.</p>
+    <div class="cfp-grid">
+      <div>
+        <div class="cfp-box" style="margin-bottom:20px">
+          <h3>Submission Tracks</h3>
+          <ul class="cfp-list">
+            <li><strong style="color:var(--fg)">Full Papers</strong> — 4–9 pages (excluding references and appendices). For novel research contributions.</li>
+            <li><strong style="color:var(--fg)">Tiny Papers</strong> — 2 pages (excluding references and appendices). For late-breaking results, datasets, and position papers.</li>
+          </ul>
+        </div>
+        <div class="cfp-box">
+          <h3>Review Criteria</h3>
+          <ul class="cfp-list">
+            <li>Relevance to workshop topics</li>
+            <li>Technical quality and novelty</li>
+            <li>Clarity of writing and presentation</li>
+            <li>Potential impact</li>
+          </ul>
+          <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border)">
+            <div style="font-size:.82rem;color:var(--fg2);margin-bottom:8px">Submission Portal</div>
+            <div style="font-family:var(--font-mono);font-weight:700;color:var(--amber);font-size:.88rem">OpenReview · Link TBD</div>
+          </div>
+        </div>
+      </div>
+      <div class="cfp-box">
+        <h3>Key Dates</h3>
+        <ul class="dates-list">
+          <li class="date-row"><span class="date-label">Submission Deadline</span><span class="date-val">Jan 15, 2027</span></li>
+          <li class="date-row"><span class="date-label">Author Notification</span><span class="date-val">Feb 20, 2027</span></li>
+          <li class="date-row"><span class="date-label">Camera-Ready &amp; OpenReview Upload</span><span class="date-val">Feb 26, 2027</span></li>
+          <li class="date-row"><span class="date-label">Workshop Date</span><span class="date-val">Apr 2027 · TBD</span></li>
+        </ul>
+<div style="margin-top:14px;font-size:.8rem;color:var(--fg3)">All times AoE (Anywhere on Earth).</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Organizers ──────────────────────────────────────────────────────────── -->
+<section id="organizers" class="section">
+  <div class="container">
+    <div class="eyebrow">Organizing Committee</div>
+    <div class="organizers-grid">
+
+      <div class="organizer-card">
+        <div class="org-avatar av-0">
+          <img src="img/dsong.png" alt="Dongjin Song" onerror="this.parentElement.innerHTML='DS'">
+        </div>
+        <div class="org-name">Dongjin Song</div>
+        <div class="org-affil">Associate Professor<br>University of Connecticut</div>
+        <div class="org-links"><a class="org-link" href="https://songdj.github.io/" target="_blank" rel="noopener">Homepage</a></div>
+      </div>
+
+      <div class="organizer-card">
+        <div class="org-avatar av-1">
+          <img src="img/jni.jpg" alt="Jingchao Ni" onerror="this.parentElement.innerHTML='JN'">
+        </div>
+        <div class="org-name">Jingchao Ni</div>
+        <div class="org-affil">Assistant Professor<br>University of Houston</div>
+        <div class="org-links"><a class="org-link" href="https://nijingchao.github.io/" target="_blank" rel="noopener">Homepage</a></div>
+      </div>
+
+      <div class="organizer-card">
+        <div class="org-avatar av-3">
+          <img src="img/echen.png" alt="Elynn Chen" onerror="this.parentElement.innerHTML='EC'">
+        </div>
+        <div class="org-name">Elynn Chen</div>
+        <div class="org-affil">Assistant Professor<br>New York University</div>
+        <div class="org-links"><a class="org-link" href="https://elynncc.github.io/" target="_blank" rel="noopener">Homepage</a></div>
+      </div>
+
+      <div class="organizer-card">
+        <div class="org-avatar av-6">
+          <img src="img/dpatel.jpeg" alt="Dhaval Patel" onerror="this.parentElement.innerHTML='DP'">
+        </div>
+        <div class="org-name">Dhaval Patel</div>
+        <div class="org-affil">Senior Technical Staff Member<br>IBM Research</div>
+        <div class="org-links"><a class="org-link" href="https://www.linkedin.com/in/dhaval-patel-2b287033" target="_blank" rel="noopener">Homepage</a></div>
+      </div>
+
+      <div class="organizer-card">
+        <div class="org-avatar av-4">
+          <img src="img/dsluo.jpeg" alt="Dongsheng Luo" onerror="this.parentElement.innerHTML='DL'">
+        </div>
+        <div class="org-name">Dongsheng Luo</div>
+        <div class="org-affil">Presidential Asst. Professor<br>Singapore Management Univ.</div>
+        <div class="org-links"><a class="org-link" href="https://dluoedu.github.io/" target="_blank" rel="noopener">Homepage</a></div>
+      </div>
+
+      <div class="organizer-card">
+        <div class="org-avatar av-2">
+          <img src="img/yxie.jpg" alt="Yao Xie" onerror="this.parentElement.innerHTML='YX'">
+        </div>
+        <div class="org-name">Yao Xie</div>
+        <div class="org-affil">Professor (Coca-Cola Chair)<br>Georgia Institute of Technology</div>
+        <div class="org-links"><a class="org-link" href="https://www2.isye.gatech.edu/~yxie77/" target="_blank" rel="noopener">Homepage</a></div>
+      </div>
+
+      <div class="organizer-card">
+        <div class="org-avatar av-5">
+          <img src="img/htong.png" alt="Hanghang Tong" onerror="this.parentElement.innerHTML='HT'">
+        </div>
+        <div class="org-name">Hanghang Tong</div>
+        <div class="org-affil">Professor &amp; University Scholar<br>Univ. of Illinois Urbana-Champaign</div>
+        <div class="org-links"><a class="org-link" href="http://tonghanghang.org/" target="_blank" rel="noopener">Homepage</a></div>
+      </div>
+
+      <div class="organizer-card">
+        <div class="org-avatar av-7">
+          <img src="img/ynevmyvaka.jpg" alt="Yuriy Nevmyvaka" onerror="this.parentElement.innerHTML='YN'">
+        </div>
+        <div class="org-name">Yuriy Nevmyvaka</div>
+        <div class="org-affil">Head of ML Research<br>Morgan Stanley</div>
+        <div class="org-links"><a class="org-link" href="https://www.linkedin.com/in/yuriynevmyvaka" target="_blank" rel="noopener">Homepage</a></div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ─────────────────────────────────────────────────────────────── -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-logo">
+        <span class="logo-accent">NF-TSI</span>
+        <span class="logo-sep">·</span>
+        <span class="logo-conf">ICLR 2027</span>
+      </div>
+      <ul class="footer-links">
+        <li><a href="#about">About</a></li>
+        <li><a href="#topics">Topics</a></li>
+        <li><a href="#schedule">Schedule</a></li>
+        <li><a href="#cfp">CFP</a></li>
+        <li><a href="https://iclr.cc/Conferences/2027" target="_blank" rel="noopener">ICLR 2027</a></li>
+      </ul>
+    </div>
+    <div class="footer-copy">
+      The Next Frontier of Time Series Intelligence · ICLR 2027 Workshop Proposal
+    </div>
+  </div>
+</footer>
+
+<!-- ── Scripts ────────────────────────────────────────────────────────────── -->
+<script>
+/* Burger nav */
+const burger = document.getElementById('nav-burger');
+const links  = document.getElementById('nav-links');
+burger.addEventListener('click', () => {
+  const open = links.classList.toggle('open');
+  burger.setAttribute('aria-expanded', open);
+});
+links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => links.classList.remove('open')));
+
+/* ── Hero canvas: scrolling multi-channel time-series waveforms ────────── */
+(function () {
+  const canvas = document.getElementById('hero-canvas');
+  const ctx    = canvas.getContext('2d');
+  let W, H, t = 0;
+
+  /* Channel definitions: y-position (fraction of H), amplitude, frequency,
+     colour, line width, and a seed for pseudo-random noise */
+  const CHANNELS = [
+    { yf: .22, amp: 28, freq: .018, speed: .9,  color: 'rgba(0,122,106,.55)',   lw: 1.8, seed: 1.7  },
+    { yf: .40, amp: 42, freq: .010, speed: .6,  color: 'rgba(74,85,208,.40)',   lw: 2.0, seed: 3.1  },
+    { yf: .58, amp: 22, freq: .026, speed: 1.1, color: 'rgba(0,122,106,.30)',   lw: 1.4, seed: 5.3  },
+    { yf: .72, amp: 52, freq: .007, speed: .45, color: 'rgba(74,85,208,.25)',   lw: 1.6, seed: 7.9  },
+    { yf: .86, amp: 18, freq: .034, speed: 1.3, color: 'rgba(0,160,130,.22)',   lw: 1.2, seed: 2.4  },
+  ];
+
+  /* Lightweight smooth noise: sum of sines at coprime frequencies */
+  function noise(x, seed) {
+    return (
+      Math.sin(x * 0.11 + seed * 1.3) * .45 +
+      Math.sin(x * 0.23 + seed * 2.1) * .30 +
+      Math.sin(x * 0.47 + seed * 0.7) * .15 +
+      Math.sin(x * 0.97 + seed * 3.3) * .10
+    );
+  }
+
+  function resize() {
+    W = canvas.width  = canvas.offsetWidth;
+    H = canvas.height = canvas.offsetHeight;
+  }
+
+  function drawGrid() {
+    const cols = Math.ceil(W / 60), rows = Math.ceil(H / 60);
+    ctx.strokeStyle = 'rgba(74,85,208,.045)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= cols; i++) {
+      ctx.beginPath();
+      ctx.moveTo(i * 60, 0); ctx.lineTo(i * 60, H); ctx.stroke();
+    }
+    for (let j = 0; j <= rows; j++) {
+      ctx.beginPath();
+      ctx.moveTo(0, j * 60); ctx.lineTo(W, j * 60); ctx.stroke();
+    }
+  }
+
+  function drawChannel(ch) {
+    const baseY = H * ch.yf;
+    const offset = t * ch.speed;
+
+    ctx.beginPath();
+    ctx.strokeStyle = ch.color;
+    ctx.lineWidth   = ch.lw;
+    ctx.lineJoin    = 'round';
+
+    for (let x = 0; x <= W; x += 2) {
+      const phase = (x + offset) * ch.freq;
+      /* combine sine wave + smooth noise for realistic time-series look */
+      const sine  = Math.sin(phase) * .6 + Math.sin(phase * 2.3 + .8) * .25 + Math.sin(phase * 4.1 + 1.6) * .15;
+      const n     = noise(x + offset * .04, ch.seed);
+      const y     = baseY + (sine + n * .5) * ch.amp;
+      x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  function drawAnnotations() {
+    /* Tiny vertical markers: simulated event spikes on channel 1 */
+    const evPositions = [0.14, 0.37, 0.62, 0.85];
+    evPositions.forEach(frac => {
+      const x = (frac * W + t * .4) % W;
+      const baseY = H * CHANNELS[1].yf;
+      ctx.strokeStyle = 'rgba(74,85,208,.18)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 4]);
+      ctx.beginPath(); ctx.moveTo(x, baseY - 48); ctx.lineTo(x, baseY + 48); ctx.stroke();
+      ctx.setLineDash([]);
+    });
+  }
+
+  function frame() {
+    ctx.clearRect(0, 0, W, H);
+    drawGrid();
+    CHANNELS.forEach(drawChannel);
+    drawAnnotations();
+    t += 1;
+    requestAnimationFrame(frame);
+  }
+
+  new ResizeObserver(resize).observe(canvas.parentElement);
+  resize();
+
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    drawGrid(); CHANNELS.forEach(drawChannel);
+  } else {
+    frame();
+  }
+})();
+</script>
+</body>
+</html>
